@@ -12,9 +12,10 @@ const { default: AsyncStorage } = require('@react-native-async-storage/async-sto
 const cors = require('cors');
 const { ObjectId } = require('bson');
 app.use(cors());
+app.use(express.urlencoded({extended:true}));
 
 const JWT_SECRET='SECRET123';
-// const port=5000;
+
 
 
 
@@ -31,6 +32,10 @@ mongoose.connect(mongoUrl)
 require('./models/usersDetails')
 const User=mongoose.model("usersInfo");
 
+const port = process.env.PORT || 4000 
+app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+
+
 
 
  app.get('/',(req,res)=>{
@@ -45,7 +50,7 @@ app.post("/usersRegister",async(req,res)=>{
    const oldUser=await User.findOne({phone:phone});
 
   if(oldUser){
-    return res.send({data:"User already exists"});
+    return res.send({status: "exists",data:"User already exists"});
   }
 
   const encrypt=await bcrypt.hash(password,10);
@@ -131,9 +136,6 @@ app.get('/protected', authenticateToken, (req, res) => {
 });
 
 // Start the server
-const PORT = 5000;
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
-
 
 
 
