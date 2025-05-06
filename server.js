@@ -14,7 +14,7 @@ const { ObjectId } = require('bson');
 app.use(cors());
 
 const JWT_SECRET='SECRET123';
-const port=5000;
+// const port=5000;
 
 
 
@@ -131,8 +131,8 @@ app.get('/protected', authenticateToken, (req, res) => {
 });
 
 // Start the server
-// const PORT = process.env.PORT || 5000;
-app.listen(port, () => console.log(`Server running on port ${port}`));
+const PORT = 5000;
+app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
 
 
 
@@ -316,9 +316,9 @@ app.put('/Mosques/:id', async (req, res) => {
 
 
 
-app.listen(port,(req,res)=>{
-  console.log("mongodb connected to port 5000");
-})
+// app.listen(port,(req,res)=>{
+//   console.log("mongodb connected to port 5000");
+// })
 
 
 
