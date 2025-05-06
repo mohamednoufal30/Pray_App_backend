@@ -32,7 +32,7 @@ mongoose.connect(mongoUrl)
 require('./models/usersDetails')
 const User=mongoose.model("usersInfo");
 
-const port = process.env.PORT || 4000 
+const port =  6000 ;
 app.listen(port, () => console.log(`Server running on port ${port}`));
 
 
