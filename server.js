@@ -38,10 +38,10 @@ const User=mongoose.model("usersInfo");
 })
 
 app.post("/usersRegister",async(req,res)=>{
-  const {name,
-   
-    phone,password}=req.body;
+
+  const {name, phone,password}=req.body;
     const userType="USER";
+    console.log("user",req.body);
    const oldUser=await User.findOne({phone:phone});
 
   if(oldUser){

@@ -7,8 +7,6 @@ const mosqueDetails=new Schema({
   
     mosqueName:{type:String,unique:true},
     location:{type:String},
-    // Email:{type:String} ,
-    // userType:{type:String},
     fajrSalah:{type:String},    
     zuhrSalah:{type:String},
     asrSalah:{type:String},
