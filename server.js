@@ -1,5 +1,7 @@
 const express = require('express');
 /*  const bodyParser=require('body-parser');  */
+const multer = require('multer');
+const path = require('path');
 const app = express();
 const mongoose = require('mongoose');
 app.use(express.json());
@@ -12,11 +14,13 @@ const { ObjectId } = require('bson');
 app.use(cors());
 
 const JWT_SECRET='SECRET123';
-
 const port=5000;
 
 
+
+
 const mongoUrl="mongodb+srv://mohamednoufal:admin@myapplication.sqix7zd.mongodb.net/?retryWrites=true&w=majority&appName=MyApplication";
+
 mongoose.connect(mongoUrl)
 .then(()=>{ console.log("mongodb connected ");
 })
@@ -34,9 +38,11 @@ const User=mongoose.model("usersInfo");
 })
 
 app.post("/usersRegister",async(req,res)=>{
-  const {name,email,phone,password,userType}=req.body;
-  
-   const oldUser=await User.findOne({email:email});
+  const {name,
+   
+    phone,password}=req.body;
+    const userType="USER";
+   const oldUser=await User.findOne({phone:phone});
 
   if(oldUser){
     return res.send({data:"User already exists"});
@@ -47,11 +53,11 @@ app.post("/usersRegister",async(req,res)=>{
   try{
     await User.create({
       name:name,
-      email:email,
       phone:phone,
       password:encrypt,
       userType:userType
     });
+    console.log("User Created");
     res.send({status:"ok",data:"User Created"});
 
   }catch(error){
@@ -65,32 +71,72 @@ app.post("/usersRegister",async(req,res)=>{
  app.post("/login-user",async(req,res)=>{
   const {email,password}=req.body;
   
-   const oldUser=await User.findOne({email:email});
-
+   const oldUser=await User.findOne({phone:email});
+    
 
   if(!oldUser){
-    return res.send({data:"user doesn't exists"});
+    return res.status(404).json({ status: 'error', data: 'User not found' });
   }
   console.log(oldUser);
 
  if(await bcrypt.compare(password,oldUser.password)){
-  const token=jwt.sign({email:oldUser.email},JWT_SECRET);
+  const token=jwt.sign({phone:oldUser.phone},JWT_SECRET,
+    { expiresIn: '30s' }
+  );
+ 
+//   const decoded = jwt.decode(token);
+// const exptime = decoded.exp * 1000; // Convert to milliseconds
+// console.log('Token Expiration Time (in ms):', exptime);
 
- //res.send({status:"ok",data:"Logged in",token:token});
+  // console.log(exptime);
+ res.send({status:"ok",data:"Logged in",data:token,userType:oldUser.userType,user:oldUser,username:oldUser.name});
 
  
+  // if(res.status(201)){
    
-  if(res.status(201)){
+  //   return res.send({ status:"ok",data:'token',userType:oldUser.userType,user:oldUser});
    
-    return res.send({ status:"ok",data:'token',userType:oldUser.userType,user:oldUser});
-   
-  } else{
-    return res.send({error:"error"});
-  }
+  // } 
+  // else{
+  //   return res.send({error:"error"});
+  // }
  }
 
  
 }) ;
+
+function authenticateToken(req, res, next) {
+  const authHeader = req.headers['authorization'];
+  const token = authHeader && authHeader.split(' ')[1]; // Format: Bearer <token>
+
+  if (!token) return res.sendStatus(401); // Unauthorized
+
+  jwt.verify(token, JWT_SECRET, (err, user) => {
+    if (err) {
+      // return res.sendStatus(403); 
+      res.status(403).json({ error: 'Forbidden',message:'Token Expired' }); // Forbidden (invalid/expired token)
+    }// Forbidden (invalid/expired token)
+    req.user = user;
+    next();
+  });
+}
+
+app.get('/verifyToken', authenticateToken, (req, res) => {
+  res.json({ valid: true });
+});
+// Protected Route
+app.get('/protected', authenticateToken, (req, res) => {
+  const name = req.user.name; // Assuming the token contains user information
+  res.json({ message: `Hello ${name}, you accessed protected data!` , valid: true });
+});
+
+// Start the server
+const PORT = process.env.PORT || 6000;
+app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+
+
+
+
 
 app.post("/userData",async(req,res)=>{
   const {token}=req.body;
@@ -112,48 +158,6 @@ app.post("/userData",async(req,res)=>{
 }); 
 
 
-
-
-require('./models/mosqueDetails')
- const Mosque=mongoose.model("mosqueInfo");
-
- app.post("/mosqueRegister",async(req,res)=>{
-  const { mosqueName,location,email,userType,fajrTime,fajrIkaamat,zuhrTime,zuhrIkaamat,asrTime,asrIkaamat,magribTime,magribIkaamat,
-       ishaTime,ishaIkaamat,jummaTime,jummahikaamat}=req.body;
-  
-   const oldMosque=await Mosque.findOne({mosqueName:mosqueName});
-
-  if(oldMosque){
-    return res.send({data:"User already exists"});
-  }
-
-
-  try{
-    await Mosque.create({
-    mosqueName:mosqueName,
-    location:location,
-    Email:email,
-    userType:userType,
-    fajrSalah:fajrTime,
-    zuhrSalah:zuhrTime,
-    asrSalah:asrTime,
-    maghribSalah:magribTime,
-    ishaSalah:ishaTime,
-    jummahSalah:jummaTime,
-    fajrIkaamat:fajrIkaamat,
-    zuhrIkaamat:zuhrIkaamat,
-    asrIkaamat:asrIkaamat,
-    maghribIkaamat:magribIkaamat,
-    ishaIkaamat:ishaIkaamat,
-    jummahikaamat:jummahikaamat
-    });
-    res.send({status:"ok",data:"Mosque Created"});
-
-  }catch(error){
-    res.send({status:"error",data:error});
-
-  }
-}) 
 
 
 app.get("/Admins",async(req,res)=>{
@@ -316,3 +320,120 @@ app.listen(port,(req,res)=>{
   console.log("mongodb connected to port 5000");
 })
 
+
+
+// const UpdatedMosqueInfo = require('./models/updatedData'); 
+
+app.put('/updateMosque/:id', async (req, res) => {
+  try {
+    const { id } = req.params; // this will be used as the filter (_id)
+    const mosqueData = req.body.mosqueData || {};
+    const updatedData = req.body.updatedData || {};
+    const userphone = mosqueData.userPhone || "system";
+  
+    // Add metadata fields
+    // mosqueData.updatedAt = new Date().toLocaleString();
+  
+    console.log("Updated At:", mosqueData.updatedAt);
+    mosqueData.updatedBy = userphone;
+  
+    // Merge updatedData with mosqueData
+    const updatePayload = { ...updatedData, ...mosqueData };
+    console.log("Mosque Data:", mosqueData);
+    console.log("Update Payload:", updatedData);
+    console.log("User Phone:", userphone);
+    console.log("Final Update Payload:", updatePayload);
+  
+    const updatedMosque = await Mosque.findOneAndUpdate(
+      { _id: id },
+      updatePayload,
+      { new: true, upsert: true } // return the updated document or create it
+    );
+  
+    res.json(updatedMosque);
+  } catch (err) {
+    console.error("Upsert failed", err);
+    res.status(500).json({ error: "Failed to update or create mosque" });
+  }
+  
+});
+
+
+app.put('/Users/:id', async (req, res) => {
+  const { id } = req.params;
+  const { userType } = req.body;
+  try {
+    const user = await User.findByIdAndUpdate(id, { userType }, { new: true });
+    if (user) {
+      res.status(200).json({ message: 'User role updated', user });
+    } else {
+      res.status(404).json({ message: 'User not found' });
+    }
+  } catch (error) {
+    console.error('Error updating user role:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
+//multer setup
+
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, 'uploads/'); // folder to store images
+  },
+  filename: function (req, file, cb) {
+    const ext = path.extname(file.originalname);
+    cb(null, Date.now() + ext);
+  }
+});
+
+const upload = multer({ storage: storage });
+
+app.use('/uploads', express.static('uploads'));
+
+
+require('./models/mosqueDetails')
+
+ const Mosque=mongoose.model("mosqueInfo");
+
+ app.post("/mosqueRegister", upload.single('image'), async(req,res)=>{
+  // const { mosqueName,location,userType,fajrTime,fajrIkaamat,zuhrTime,zuhrIkaamat,asrTime,asrIkaamat,magribTime,magribIkaamat,
+  //      ishaTime,ishaIkaamat,jummaTime,jummahikaamat}=req.body;
+  const { mosqueName,location,userType,fajrSalah,fajrIkaamat,zuhrSalah,zuhrIkaamat,asrSalah,asrIkaamat,maghribSalah,maghribIkaamat,
+    ishaSalah,ishaIkaamat,jummaSalah,jummahikaamat}=req.body;
+  
+   const oldMosque=await Mosque.findOne({mosqueName:mosqueName});
+
+  if(oldMosque){
+    return res.send({data:"User already exists"});
+  }
+
+  console.log("old mosque",req.body);
+
+  try{
+  const newmosque= await Mosque.create({
+    mosqueName:mosqueName,
+    location:location,
+    // Email:email,
+    userType:userType,
+    fajrSalah:fajrSalah,
+    zuhrSalah:zuhrSalah,
+    asrSalah:asrSalah,
+    maghribSalah:maghribSalah,
+    ishaSalah:ishaSalah,
+    jummahSalah:jummaSalah,
+    fajrIkaamat:fajrIkaamat,
+    zuhrIkaamat:zuhrIkaamat,
+    asrIkaamat:asrIkaamat,
+    maghribIkaamat:maghribIkaamat,
+    ishaIkaamat:ishaIkaamat,
+    jummahikaamat:jummahikaamat,
+    image: req.file ? req.file.filename : null
+    });
+    res.send({status:"ok",data:"Mosque Created",datas:newmosque});
+
+  }catch(error){
+    res.send({status:"error",data:error});
+
+  }
+})
