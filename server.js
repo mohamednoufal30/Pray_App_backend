@@ -14,7 +14,7 @@ const { ObjectId } = require('bson');
 app.use(cors());
 
 const JWT_SECRET='SECRET123';
-const port=6000;
+const port=5000;
 
 
 
