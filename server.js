@@ -86,7 +86,7 @@ app.post("/usersRegister",async(req,res)=>{
 
  if(await bcrypt.compare(password,oldUser.password)){
   const token=jwt.sign({phone:oldUser.phone},JWT_SECRET,
-    { expiresIn: '30s' }
+    { expiresIn: '10min' }
   );
  
 //   const decoded = jwt.decode(token);
@@ -402,7 +402,7 @@ require('./models/mosqueDetails')
   // const { mosqueName,location,userType,fajrTime,fajrIkaamat,zuhrTime,zuhrIkaamat,asrTime,asrIkaamat,magribTime,magribIkaamat,
   //      ishaTime,ishaIkaamat,jummaTime,jummahikaamat}=req.body;
   const { mosqueName,location,userType,fajrSalah,fajrIkaamat,zuhrSalah,zuhrIkaamat,asrSalah,asrIkaamat,maghribSalah,maghribIkaamat,
-    ishaSalah,ishaIkaamat,jummaSalah,jummahikaamat}=req.body;
+    ishaSalah,ishaIkaamat,jummahSalah,jummahikaamat}=req.body;
   
    const oldMosque=await Mosque.findOne({mosqueName:mosqueName});
 
@@ -423,7 +423,7 @@ require('./models/mosqueDetails')
     asrSalah:asrSalah,
     maghribSalah:maghribSalah,
     ishaSalah:ishaSalah,
-    jummahSalah:jummaSalah,
+    jummahSalah:jummahSalah,
     fajrIkaamat:fajrIkaamat,
     zuhrIkaamat:zuhrIkaamat,
     asrIkaamat:asrIkaamat,
