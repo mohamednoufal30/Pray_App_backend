@@ -332,6 +332,9 @@ app.put('/updateMosque/:id', async (req, res) => {
     const mosqueData = req.body.mosqueData || {};
     const updatedData = req.body.updatedData || {};
     const userphone = mosqueData.userPhone || "system";
+
+    // console.log("Mosque Data:", mosqueData);
+    // console.log("Updated Data:", updatedData);
   
     // Add metadata fields
     // mosqueData.updatedAt = new Date().toLocaleString();
@@ -352,7 +355,7 @@ app.put('/updateMosque/:id', async (req, res) => {
       { new: true, upsert: true } // return the updated document or create it
     );
   
-    res.json(updatedMosque);
+  res.status(200).json(updatedMosque);
   } catch (err) {
     console.error("Upsert failed", err);
     res.status(500).json({ error: "Failed to update or create mosque" });
