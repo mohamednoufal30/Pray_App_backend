@@ -401,44 +401,59 @@ require('./models/mosqueDetails')
 
  const Mosque=mongoose.model("mosqueInfo");
 
- app.post("/mosqueRegister", upload.single('image'), async(req,res)=>{
-  // const { mosqueName,location,userType,fajrTime,fajrIkaamat,zuhrTime,zuhrIkaamat,asrTime,asrIkaamat,magribTime,magribIkaamat,
-  //      ishaTime,ishaIkaamat,jummaTime,jummahikaamat}=req.body;
-  const { mosqueName,location,userType,fajrSalah,fajrIkaamat,zuhrSalah,zuhrIkaamat,asrSalah,asrIkaamat,maghribSalah,maghribIkaamat,
-    ishaSalah,ishaIkaamat,jummahSalah,jummahikaamat}=req.body;
-  
-   const oldMosque=await Mosque.findOne({mosqueName:mosqueName});
+ app.post("/mosqueRegister", upload.single('image'), async (req, res) => {
+  try {
+    const {
+      mosqueName,
+      location,
+ 
+      fajrSalah,
+      fajrIkaamat,
+      zuhrSalah,
+      zuhrIkaamat,
+      asrSalah,
+      asrIkaamat,
+      maghribSalah,
+      maghribIkaamat,
+      ishaSalah,
+      ishaIkaamat,
+      jummahSalah,
+      jummahikaamat
+    } = req.body;
 
-  if(oldMosque){
-    return res.send({data:"User already exists"});
-  }
+    if (!mosqueName || !location ) {
+      return res.status(400).json({ status: "error", data: "Missing required fields" });
+    }
 
-  console.log("old mosque",req.body);
+    const existingMosque = await Mosque.findOne({ mosqueName });
 
-  try{
-  const newmosque= await Mosque.create({
-    mosqueName:mosqueName,
-    location:location,
-    // Email:email,
-    userType:userType,
-    fajrSalah:fajrSalah,
-    zuhrSalah:zuhrSalah,
-    asrSalah:asrSalah,
-    maghribSalah:maghribSalah,
-    ishaSalah:ishaSalah,
-    jummahSalah:jummahSalah,
-    fajrIkaamat:fajrIkaamat,
-    zuhrIkaamat:zuhrIkaamat,
-    asrIkaamat:asrIkaamat,
-    maghribIkaamat:maghribIkaamat,
-    ishaIkaamat:ishaIkaamat,
-    jummahikaamat:jummahikaamat,
-    image: req.file ? req.file.filename : null
+    if (existingMosque) {
+      return res.status(409).json({ status: "error", data: "Mosque already exists" });
+    }
+
+    const newMosque = await Mosque.create({
+      mosqueName,
+      location,
+    
+      fajrSalah,
+      fajrIkaamat,
+      zuhrSalah,
+      zuhrIkaamat,
+      asrSalah,
+      asrIkaamat,
+      maghribSalah,
+      maghribIkaamat,
+      ishaSalah,
+      ishaIkaamat,
+      jummahSalah,
+      jummahikaamat,
+      image: req.file ? req.file.filename : null
     });
-    res.send({status:"ok",data:"Mosque Created",datas:newmosque});
 
-  }catch(error){
-    res.send({status:"error",data:error});
+    res.status(201).json({ status: "ok", data: "Mosque Created", mosque: newMosque });
 
+  } catch (error) {
+    console.error("Error registering mosque:", error);
+    res.status(500).json({ status: "error", data: "Internal Server Error" });
   }
 })
