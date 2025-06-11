@@ -70,45 +70,85 @@ app.post("/usersRegister",async(req,res)=>{
 
   }
 })
+
+
+
+app.post("/login-user", async (req, res) => {
+  const { email, password } = req.body;
+
+  try {
+    // Find user by phone or email (here assuming phone is used as email)
+    const oldUser = await User.findOne({ phone: email });
+
+    if (!oldUser) {
+      return res.status(404).json({ status: 'error', message: 'User not found' });
+    }
+
+    // Check if password is correct
+    const isPasswordValid = await bcrypt.compare(password, oldUser.password);
+    if (!isPasswordValid) {
+      return res.status(401).json({ status: 'error', message: 'Invalid credentials' });
+    }
+
+    // Generate JWT token
+    const token = jwt.sign(
+      { phone: oldUser.phone },
+      JWT_SECRET,
+      { expiresIn: '10min' }
+    );
+
+    // Respond with success
+    return res.status(200).json({
+      status: "ok",
+      data: token,
+      userType: oldUser.userType,
+      user: oldUser
+    });
+
+  } catch (err) {
+    // console.error("Login error:", err);
+    return res.status(500).json({ status: 'error', message: 'Internal server error' });
+  }
+});
  
 
 
- app.post("/login-user",async(req,res)=>{
-  const {email,password}=req.body;
+//  app.post("/login-user",async(req,res)=>{
+//   const {email,password}=req.body;
   
-   const oldUser=await User.findOne({phone:email});
+//    const oldUser=await User.findOne({phone:email});
     
 
-  if(!oldUser){
-    return res.status(404).json({ status: 'error', data: 'User not found' });
-  }
-  console.log(oldUser);
+//   if(!oldUser){
+//     return res.status(404).json({ status: 'error', data: 'User not found' });
+//   }
+//   console.log(oldUser);
 
- if(await bcrypt.compare(password,oldUser.password)){
-  const token=jwt.sign({phone:oldUser.phone},JWT_SECRET,
-    { expiresIn: '10min' }
-  );
+//  if(await bcrypt.compare(password,oldUser.password)){
+//   const token=jwt.sign({phone:oldUser.phone},JWT_SECRET,
+//     { expiresIn: '10min' }
+//   );
  
-//   const decoded = jwt.decode(token);
-// const exptime = decoded.exp * 1000; // Convert to milliseconds
-// console.log('Token Expiration Time (in ms):', exptime);
-
-  // console.log(exptime);
- res.send({status:"ok",data:"Logged in",data:token,userType:oldUser.userType,user:oldUser,username:oldUser.name});
+                //   const decoded = jwt.decode(token);
+              // const exptime = decoded.exp * 1000; // Convert to milliseconds
+              // console.log('Token Expiration Time (in ms):', exptime);
+ 
+             // console.log(exptime);
+ //res.send({status:"ok",data:"Logged in",data:token,userType:oldUser.userType,user:oldUser,username:oldUser.name});
 
  
-  // if(res.status(201)){
+               // if(res.status(201)){
    
-  //   return res.send({ status:"ok",data:'token',userType:oldUser.userType,user:oldUser});
+                //   return res.send({ status:"ok",data:'token',userType:oldUser.userType,user:oldUser});
    
-  // } 
-  // else{
-  //   return res.send({error:"error"});
-  // }
- }
+                  // } 
+                 // else{
+               //   return res.send({error:"error"});
+                // }
+//  }
 
  
-}) ;
+// }) ;
 
 function authenticateToken(req, res, next) {
   const authHeader = req.headers['authorization'];
