@@ -9,9 +9,9 @@ npm-debug.log*
 # Environment variables
 .env
 
-# Uploaded files (if stored locally)
-uploads/*
-!uploads/.gitkeep
+# # Uploaded files (if stored locally)
+# uploads/*
+# !uploads/.gitkeep
 
 # OS-specific files
 .DS_Store
