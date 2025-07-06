@@ -13,6 +13,7 @@ const cors = require('cors');
 const { ObjectId } = require('bson');
 app.use(cors());
 app.use(express.urlencoded({extended:true}));
+app.use('/uploads', express.static('uploads'));
 
 const JWT_SECRET='SECRET123';
 
@@ -434,7 +435,7 @@ const storage = multer.diskStorage({
 
 const upload = multer({ storage: storage });
 
-app.use('/uploads', express.static('uploads'));
+// app.use('/uploads', express.static('uploads'));
 
 
 require('./models/mosqueDetails')
@@ -491,7 +492,7 @@ require('./models/mosqueDetails')
     });
 
     res.status(201).json({ status: "ok", data: "Mosque Created", mosque: newMosque });
-
+    console.log(` fullUrl: ${req.protocol}://${req.get('host')}/uploads/${req.file.filename}`);
   } catch (error) {
     console.error("Error registering mosque:", error);
     res.status(500).json({ status: "error", data: "Internal Server Error" });
