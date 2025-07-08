@@ -433,21 +433,80 @@ const storage = multer.diskStorage({
   }
 });
 
-const upload = multer({ storage: storage });
+
 
 // app.use('/uploads', express.static('uploads'));
 
 
 require('./models/mosqueDetails')
-
+// const upload = multer({ storage: storage }); // old version with local storage
+const uploads=require('./storage'); //updated version with cloudinary
  const Mosque=mongoose.model("mosqueInfo");
 
- app.post("/mosqueRegister", upload.single('image'), async (req, res) => {
+//  app.post("/mosqueRegister", upload.single('image'), async (req, res) => {
+//   try {
+//     const {
+//       mosqueName,
+//       location,
+ 
+//       fajrSalah,
+//       fajrIkaamat,
+//       zuhrSalah,
+//       zuhrIkaamat,
+//       asrSalah,
+//       asrIkaamat,
+//       maghribSalah,
+//       maghribIkaamat,
+//       ishaSalah,
+//       ishaIkaamat,
+//       jummahSalah,
+//       jummahikaamat
+//     } = req.body;
+
+//     if (!mosqueName || !location ) {
+//       return res.status(400).json({ status: "error", data: "Missing required fields" });
+//     }
+
+//     const existingMosque = await Mosque.findOne({ mosqueName });
+
+//     if (existingMosque) {
+//       return res.status(409).json({ status: "error", data: "Mosque already exists" });
+//     }
+
+//     const newMosque = await Mosque.create({
+//       mosqueName,
+//       location,
+    
+//       fajrSalah,
+//       fajrIkaamat,
+//       zuhrSalah,
+//       zuhrIkaamat,
+//       asrSalah,
+//       asrIkaamat,
+//       maghribSalah,
+//       maghribIkaamat,
+//       ishaSalah,
+//       ishaIkaamat,
+//       jummahSalah,
+//       jummahikaamat,
+//       image: req.file ? req.file.filename : null
+//     });
+
+//     res.status(201).json({ status: "ok", data: "Mosque Created", mosque: newMosque });
+//     console.log(` fullUrl: ${req.protocol}://${req.get('host')}/uploads/${req.file.filename}`);
+//   } catch (error) {
+//     console.error("Error registering mosque:", error);
+//     res.status(500).json({ status: "error", data: "Internal Server Error" });
+//   }
+// })
+
+
+app.post("/mosqueRegister", uploads.single('image'), async (req, res) => {
+  console.log("Request body:", req.body);
   try {
     const {
       mosqueName,
       location,
- 
       fajrSalah,
       fajrIkaamat,
       zuhrSalah,
@@ -462,7 +521,7 @@ require('./models/mosqueDetails')
       jummahikaamat
     } = req.body;
 
-    if (!mosqueName || !location ) {
+    if (!mosqueName || !location) {
       return res.status(400).json({ status: "error", data: "Missing required fields" });
     }
 
@@ -472,10 +531,11 @@ require('./models/mosqueDetails')
       return res.status(409).json({ status: "error", data: "Mosque already exists" });
     }
 
+    const imageUrl = req.file ? req.file.path : null;
+
     const newMosque = await Mosque.create({
       mosqueName,
       location,
-    
       fajrSalah,
       fajrIkaamat,
       zuhrSalah,
@@ -488,13 +548,13 @@ require('./models/mosqueDetails')
       ishaIkaamat,
       jummahSalah,
       jummahikaamat,
-      image: req.file ? req.file.filename : null
+      image: imageUrl
     });
 
     res.status(201).json({ status: "ok", data: "Mosque Created", mosque: newMosque });
-    console.log(` fullUrl: ${req.protocol}://${req.get('host')}/uploads/${req.file.filename}`);
+    console.log(`Image uploaded to: ${imageUrl}`);
   } catch (error) {
     console.error("Error registering mosque:", error);
     res.status(500).json({ status: "error", data: "Internal Server Error" });
   }
-})
+});
