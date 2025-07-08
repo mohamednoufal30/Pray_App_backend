@@ -531,7 +531,8 @@ app.post("/mosqueRegister", uploads.single('image'), async (req, res) => {
       return res.status(409).json({ status: "error", data: "Mosque already exists" });
     }
 
-    const imageUrl = req.file ? req.file.path : null;
+    // const imageUrl = req.file ? req.file.path : null;
+const imageUrl = req.file?.path || null;
 
     const newMosque = await Mosque.create({
       mosqueName,
