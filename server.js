@@ -502,7 +502,7 @@ const uploads=require('./storage'); //updated version with cloudinary
 
 
 app.post("/mosqueRegister", uploads.single('image'), async (req, res) => {
-  console.log("Request body:", req.body);
+  // console.log("Request body:", req.body);
   try {
     const {
       mosqueName,
@@ -557,5 +557,30 @@ const imageUrl = req.file?.path || null;
   } catch (error) {
     console.error("Error registering mosque:", error);
     res.status(500).json({ status: "error", data: "Internal Server Error" });
+  }
+});
+
+
+
+//Retrieve phone numbers suggestion
+
+
+// GET /phone-history?search=9876
+app.get('/phonehistory', async (req, res) => {
+  const { search } = req.query;
+  
+  if (!search || search.length < 4) {
+    return res.status(400).json({ error: 'Search string too short' });
+  }
+
+  try {
+    const results = await User.find({
+      phone: { $regex: `^${search}` } // prefix match
+    }).limit(10);
+
+    const numbers = results.map(p => p.phone);
+    res.json({ data: numbers });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to fetch suggestions' });
   }
 });
