@@ -3,39 +3,292 @@ const express = require('express');
 const multer = require('multer');
 const path = require('path');
 const app = express();
+const axios = require('axios');
 const mongoose = require('mongoose');
 app.use(express.json());
 const bcrypt=require('bcryptjs');
 const jwt=require('jsonwebtoken');
 const session=require('express-session');
+const cron = require('node-cron');
+var admin = require("firebase-admin");
 const { default: AsyncStorage } = require('@react-native-async-storage/async-storage');
 const cors = require('cors');
-const { ObjectId } = require('bson');
+// const { ObjectId } = require('bson');
 app.use(cors());
 app.use(express.urlencoded({extended:true}));
 app.use('/uploads', express.static('uploads'));
 
+const { ObjectId } = mongoose.Types;
+
+require('./models/tokenDetails')
+const Token=mongoose.model("Token");
+
 const JWT_SECRET='SECRET123';
 
+var serviceAccount = require("./Private/serviceAccountKey.json");
+
+admin.initializeApp({
+  credential: admin.credential.cert(serviceAccount)
+});
+
+
+// const mongoUrl="mongodb+srv://mohamednoufal:admin@myapplication.sqix7zd.mongodb.net/?retryWrites=true&w=majority&appName=MyApplication";
+
+
+mongoose.connect("mongodb://127.0.0.1:27017/test")
+  .then(async () => {
+    console.log("✅ MongoDB connected");
+
+    // Example query after DB connection
+    const count = await User.countDocuments({});
+    console.log("Existing users:", count);
+    const PORT = 6000;
+    // Start server
+    app.listen(PORT, "0.0.0.0", () => {
+      console.log(`🚀 Server running on http://0.0.0.0:${PORT}`);
+    });
+  });
+
+
+cron.schedule("* * * * *", async () => {
+  try {
+    const now = new Date();
+    const currentTime = now.toLocaleTimeString("en-IN", {
+      hour12: false,  // 24-hour format to avoid AM/PM
+      hour: "2-digit",
+      minute: "2-digit",
+      timeZone: "Asia/Kolkata"
+    });
+
+    console.log("Checking notifications for:", currentTime);
+    
+    const data=await axios.get("http://127.0.0.1:6000/getUser");
+    console.log("data",data.data);
+
+    const users = await User.find({ notificationStatus: true })
+      .select(["MosqueName", "notificationStatus", "_id","fcmToken"]);
+
+       await sendPrayerNotifications();
+
+    // Find mosques whose salah/ikaamat matches current time
+    const mosques = await Mosque.find({
+      $or: [
+        { fajrSalah: currentTime },
+        { zuhrSalah: currentTime },
+        { asrSalah: currentTime },
+        { maghribSalah: currentTime },
+        { ishaSalah: currentTime },
+        { jummahSalah: currentTime },
+        { fajrIkaamat: currentTime },
+        { zuhrIkaamat: currentTime },
+        { asrIkaamat: currentTime },
+        { maghribIkaamat: currentTime },
+        { ishaIkaamat: currentTime }
+      ]
+    });
+
+    console.log("Mosques to notify:", mosques.length, mosques.map(m => m.mosqueName));
+
+    
+  } catch (err) {
+    console.error("Error sending notifications:", err);
+  }
+});
+
+async function sendPrayerNotifications() {
+  const now = new Date();
+  const currentTime = now.toTimeString().slice(0, 5); // "HH:MM"
+  console.log("Checking notifications for:", currentTime);
+
+  try {
+    const mosques = await Mosque.find();
+    const mosquesToNotify = mosques.filter(m =>
+      [m.fajrIkaamat, m.zuhrIkaamat, m.asrIkaamat, m.maghribIkaamat, m.ishaIkaamat].includes(currentTime)
+    );
+
+    if (mosquesToNotify.length === 0) return;
+
+    for (const mosque of mosquesToNotify) {
+      const salahName=mosque.fajrIkaamat===currentTime?"Fajr":mosque.zuhrIkaamat===currentTime?"Zuhr":mosque.asrIkaamat===currentTime?"Asr":mosque.maghribIkaamat===currentTime?"Maghrib":mosque.ishaIkaamat===currentTime?"Isha":null;
+      const users = await User.find({
+        MosqueName: mosque.mosqueName,
+        notificationStatus: true,
+        fcmToken: { $ne: "" }
+      }).select("fcmToken");
+
+      const tokens = users.map(u => u.fcmToken);
+      if (tokens.length === 0) continue;
+
+   const message = {
+  notification: {
+    title: "Prayer Reminder",
+    body: `It's time for your ${salahName} prayer at ${mosque.mosqueName}`
+  },
+  data: {
+    salahName: salahName,
+    mosqueName: mosque.mosqueName,
+    type: "PRAYER_ALERT"
+  },
+  tokens
+};
+
+      console.log("message", message);
+
+      // ✅ Correct way for firebase-admin v13+
+      const response = await admin.messaging().sendEachForMulticast(message);
+
+      console.log(`✅ Push sent to ${mosque.mosqueName}: ${response.successCount} success, ${response.failureCount} failed`);
+    }
+
+  } catch (error) {
+    console.error("❌ Error sending notifications:", error);
+  }
+}
+
+
+
+// Schedule cron: runs every day at 9:00 AM
+// cron.schedule('* * * * *', async () => {
+//   console.log('Running scheduled push notification job...');
+
+//   try {
+//     // Get all users or filter by type if needed
+//     const users = await User.find({ userType: 'USER' });
+//     const fcm='cO437hwDT2ObDglMbaJDA4:APA91bFKjgC3rgoVfJIg5adZr6OW45yB4uZtPFsEIN_Wqp4kgyeZ-_OIrFWa9UTwav1MICn3m1CR-SlOu4KspEvKr1m7tuwVC-FxbEoY9YO702GkvlIaWtc';
+//     // Send notification to each user
+
+//     for (const user of users) {
+//       if (user.fcmToken) {
+//         const message = {
+//           notification: {
+//             title: 'Good Morning 👋',
+//             body: 'This is your scheduled notification!',
+//           },
+//           // token: user.fcmToken,
+//           token: fcm,
+//         };
+
+//         await admin.messaging().send(message);
+//         console.log(`Notification sent to ${user.name}`);
+//       }
+//     }
+//   } catch (err) {
+//     console.error('Error sending scheduled notifications:', err);
+//   }
+// });
 
 
 
 
-const mongoUrl="mongodb+srv://mohamednoufal:admin@myapplication.sqix7zd.mongodb.net/?retryWrites=true&w=majority&appName=MyApplication";
+app.get("/getUser", async (req, res) => {
+  try {
+    // Get users with notification ON
+    const users = await User.find({ notificationStatus: true })
+      .select(["MosqueName", "notificationStatus", "_id","name"]);
 
-mongoose.connect(mongoUrl)
-.then(()=>{ console.log("mongodb connected ");
-})
-.catch((e)=>{
-  console.log(e);
-})
+      res.status(200).json(users);
+
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Error retrieving Users", error });
+  }
+});
+
+
+
+app.post("/postToken", async (req, res) => {
+  try {
+    const { token } = req.body;  // <-- must match frontend key
+    console.log("Received token:", token);
+
+    if (!token) {
+      return res.status(400).json({ success: false, message: "FCM token is required" });
+    }
+
+    const newToken = new Token({ token: token });
+    await newToken.save();
+    res.json({ success: true, message: "Token saved successfully" });
+  } catch (error) {
+    console.error("Error saving token:", error);
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+});
+
+
+
+app.post("/findToken", async (req, res) => {
+  const { phone } = req.body;
+console.log("Finding token for phone:", phone);
+  try {
+    const token = await Token.find({ phone: phone });
+    if (!token) {
+      return res.status(404).json({ success: false, message: "Token not found" });
+    }
+    res.json({ success: true, data: token });
+  } catch (error) {
+    console.error("Error finding token:", error);
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+});
+
+
+// update fcm token by object id
+
+app.put("/updateToken", async (req, res) => {
+  try {
+    // Get ID from URL
+
+    const { _id, fcmToken } = req.body;
+
+    const updatedUser = await User.findOneAndUpdate(
+      { _id: new mongoose.Types.ObjectId(_id) },
+      { $set: { fcmToken } }, // Data to update
+      { new: true, runValidators: true } // Return updated doc & validate
+    );
+
+    if (!updatedUser) {
+      return res.status(404).json({ success: false, message: "User not found" });
+    }
+
+    res.json({ success: true, data: updatedUser });
+  } catch (error) {
+    res.status(400).json({ success: false, error: error.message });
+  }
+});
+
+
+// update Notification Status by object id
+app.put("/updateNotificationStatus", async (req, res) => {
+  try {
+    const {_id,notificationStatus}=req.body;
+
+    const updatedUser = await User.findOneAndUpdate(
+      { _id: new mongoose.Types.ObjectId(_id) },
+      { $set: { notificationStatus } }, // Data to update
+      { new: true, runValidators: true } // Return updated doc & validate
+    );
+
+    if (!updatedUser) {
+      return res.status(404).json({ success: false, message: "User not found" });
+    }
+
+    res.json({ success: true, data: updatedUser });
+  } catch (error) {
+    res.status(400).json({ success: false, error: error.message });
+  }
+});
+
 
 require('./models/usersDetails')
+
 const User=mongoose.model("usersInfo");
 
-const port =  6000 ;
-app.listen(port, () => console.log(`Server running on port ${port}`));
 
+const port =  6000 ;
+app.listen(port, () =>{
+   
+  console.log(`Server running on port ${port}`)
+});
 
 
 
@@ -45,7 +298,7 @@ app.listen(port, () => console.log(`Server running on port ${port}`));
 
 app.post("/usersRegister",async(req,res)=>{
 
-  const {name, phone,password}=req.body;
+  const {name, phone,password,fcmToken}=req.body;
     const userType="USER";
     console.log("user",req.body);
    const oldUser=await User.findOne({phone:phone});
@@ -55,13 +308,18 @@ app.post("/usersRegister",async(req,res)=>{
   }
 
   const encrypt=await bcrypt.hash(password,10);
+  mosqueName="";
+  notificationStatus=false;
 
   try{
     await User.create({
       name:name,
       phone:phone,
       password:encrypt,
-      userType:userType
+      userType:userType,
+      fcmToken:fcmToken,
+      notificationStatus:notificationStatus,
+      MosqueName:mosqueName
     });
     console.log("User Created");
     res.send({status:"ok",data:"User Created"});
@@ -95,7 +353,7 @@ app.post("/login-user", async (req, res) => {
     const token = jwt.sign(
       { phone: oldUser.phone },
       JWT_SECRET,
-      { expiresIn: '10min' }
+      // { expiresIn: '7d' }
     );
 
     // Respond with success
@@ -113,43 +371,6 @@ app.post("/login-user", async (req, res) => {
 });
  
 
-
-//  app.post("/login-user",async(req,res)=>{
-//   const {email,password}=req.body;
-  
-//    const oldUser=await User.findOne({phone:email});
-    
-
-//   if(!oldUser){
-//     return res.status(404).json({ status: 'error', data: 'User not found' });
-//   }
-//   console.log(oldUser);
-
-//  if(await bcrypt.compare(password,oldUser.password)){
-//   const token=jwt.sign({phone:oldUser.phone},JWT_SECRET,
-//     { expiresIn: '10min' }
-//   );
- 
-                //   const decoded = jwt.decode(token);
-              // const exptime = decoded.exp * 1000; // Convert to milliseconds
-              // console.log('Token Expiration Time (in ms):', exptime);
- 
-             // console.log(exptime);
- //res.send({status:"ok",data:"Logged in",data:token,userType:oldUser.userType,user:oldUser,username:oldUser.name});
-
- 
-               // if(res.status(201)){
-   
-                //   return res.send({ status:"ok",data:'token',userType:oldUser.userType,user:oldUser});
-   
-                  // } 
-                 // else{
-               //   return res.send({error:"error"});
-                // }
-//  }
-
- 
-// }) ;
 
 function authenticateToken(req, res, next) {
   const authHeader = req.headers['authorization'];
@@ -190,7 +411,7 @@ app.post("/userData",async(req,res)=>{
     const userEmail=user.email;
 
     User.findOne({email:userEmail}).then((data)=>{
-      console.log(data);
+      // console.log(data);
       return res.send({status:"ok",data:data});
     });
     
@@ -199,6 +420,30 @@ app.post("/userData",async(req,res)=>{
     
   }
 }); 
+
+app.post("/postUserMosque", async (req, res) => {
+  const { mosqueName, notificationStatus, userPhone } = req.body;
+
+  try {
+    // Update user
+    const updatedUser = await User.findOneAndUpdate(
+      { phone: userPhone },
+      { $set: { MosqueName: mosqueName, notificationStatus: notificationStatus } },
+      { new: true } // return the updated document
+    );
+
+    if (!updatedUser) {
+      return res.status(404).send({ status: "error", message: "User not found" });
+    }
+
+    console.log("Updated user:", updatedUser);
+    return res.send({ status: "ok", data: updatedUser });
+
+  } catch (error) {
+    console.error("Error updating user:", error);
+    return res.status(500).send({ status: "error", message: "Server error" });
+  }
+});
 
 
 
