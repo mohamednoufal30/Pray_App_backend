@@ -25,17 +25,23 @@ const Token=mongoose.model("Token");
 
 const JWT_SECRET='SECRET123';
 
-var serviceAccount = require("./Private/serviceAccountKey.json");
+// var serviceAccount = require("./Private/serviceAccountKey.json");
+
+const serviceAccount = JSON.parse(
+  Buffer.from(process.env.SERVICE_ACCOUNT_KEY, 'base64').toString('utf8')
+);
 
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount)
 });
 
+console.log("✅ Firebase Admin initialized successfully");
 
-// const mongoUrl="mongodb+srv://mohamednoufal:admin@myapplication.sqix7zd.mongodb.net/?retryWrites=true&w=majority&appName=MyApplication";
+const mongoUrl="mongodb+srv://mohamednoufal:admin@myapplication.sqix7zd.mongodb.net/?retryWrites=true&w=majority&appName=MyApplication";
 
 
-mongoose.connect("mongodb://127.0.0.1:27017/test")
+// mongoose.connect("mongodb://127.0.0.1:27017/test")
+mongoose.connect(mongoUrl,{ useNewUrlParser: true , useUnifiedTopology: true})
   .then(async () => {
     console.log("✅ MongoDB connected");
 
