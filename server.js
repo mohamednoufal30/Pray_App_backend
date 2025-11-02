@@ -266,11 +266,11 @@ app.put("/updateToken", async (req, res) => {
 // update Notification Status by object id
 app.put("/updateNotificationStatus", async (req, res) => {
   try {
-    const {_id,notificationStatus}=req.body;
+    const {_id,notificationStatus,MosqueName}=req.body;
 
     const updatedUser = await User.findOneAndUpdate(
       { _id: new mongoose.Types.ObjectId(_id) },
-      { $set: { notificationStatus } }, // Data to update
+      { $set: { notificationStatus,MosqueName } }, // Data to update
       { new: true, runValidators: true } // Return updated doc & validate
     );
 
