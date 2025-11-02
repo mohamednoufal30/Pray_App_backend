@@ -68,7 +68,8 @@ cron.schedule("* * * * *", async () => {
 
     console.log("Checking notifications for:", currentTime);
     
-    const data=await axios.get("http://127.0.0.1:6000/getUser");
+    // const data=await axios.get("http://127.0.0.1:6000/getUser");
+    const data=await axios.get("https://prayappbackend-production.up.railway.app/getUser");
     console.log("data",data.data);
 
     const users = await User.find({ notificationStatus: true })
@@ -608,11 +609,6 @@ app.put('/Mosques/:id', async (req, res) => {
   
 });
 
-
-
-// app.listen(port,(req,res)=>{
-//   console.log("mongodb connected to port 5000");
-// })
 
 
 
