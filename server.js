@@ -291,11 +291,7 @@ require('./models/usersDetails')
 const User=mongoose.model("usersInfo");
 
 
-const port =  6000 ;
-app.listen(port, () =>{
-   
-  console.log(`Server running on port ${port}`)
-});
+
 
 
 
