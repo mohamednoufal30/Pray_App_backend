@@ -56,28 +56,118 @@ mongoose.connect(mongoUrl,{ useNewUrlParser: true , useUnifiedTopology: true})
   });
 
 
+// cron.schedule("* * * * *", async () => {
+//   try {
+//     const now = new Date();
+//     const currentTime = now.toLocaleTimeString("en-IN", {
+//       hour12: false,  // 24-hour format to avoid AM/PM
+//       hour: "2-digit",
+//       minute: "2-digit",
+//       timeZone: "Asia/Kolkata"
+//     });
+
+//     console.log("Checking notifications for:", currentTime);
+    
+//     // const data=await axios.get("http://127.0.0.1:6000/getUser");
+//     const data=await axios.get("https://prayappbackend-production.up.railway.app/getUser");
+//     console.log("data",data.data);
+
+//     const users = await User.find({ notificationStatus: true })
+//       .select(["MosqueName", "notificationStatus", "_id","fcmToken"]);
+
+//      await sendPrayerNotifications();
+
+//     // Find mosques whose salah/ikaamat matches current time
+//     const mosques = await Mosque.find({
+//       $or: [
+//         { fajrSalah: currentTime },
+//         { zuhrSalah: currentTime },
+//         { asrSalah: currentTime },
+//         { maghribSalah: currentTime },
+//         { ishaSalah: currentTime },
+//         { jummahSalah: currentTime },
+//         { fajrIkaamat: currentTime },
+//         { zuhrIkaamat: currentTime },
+//         { asrIkaamat: currentTime },
+//         { maghribIkaamat: currentTime },
+//         { ishaIkaamat: currentTime }
+//       ]
+//     });
+
+//     console.log("Mosques to notify:", mosques.length, mosques.map(m => m.mosqueName));
+
+    
+//   } catch (err) {
+//     console.error("Error sending notifications:", err);
+//   }
+// });
+
+// async function sendPrayerNotifications() {
+//   const now = new Date();
+//   const currentTime = now.toTimeString().slice(0, 5); // "HH:MM"
+//   console.log("Checking notifications for:", currentTime);
+
+//   try {
+//     const mosques = await Mosque.find();
+//     const mosquesToNotify = mosques.filter(m =>
+//       [m.fajrIkaamat, m.zuhrIkaamat, m.asrIkaamat, m.maghribIkaamat, m.ishaIkaamat].includes(currentTime)
+//     );
+
+//     if (mosquesToNotify.length === 0) return;
+
+//     for (const mosque of mosquesToNotify) {
+//       const salahName=mosque.fajrIkaamat===currentTime?"Fajr":mosque.zuhrIkaamat===currentTime?"Zuhr":mosque.asrIkaamat===currentTime?"Asr":mosque.maghribIkaamat===currentTime?"Maghrib":mosque.ishaIkaamat===currentTime?"Isha":null;
+//       const users = await User.find({
+//         MosqueName: mosque.mosqueName,
+//         notificationStatus: true,
+//         fcmToken: { $ne: "" }
+//       }).select("fcmToken");
+
+//       const tokens = users.map(u => u.fcmToken);
+//       if (tokens.length === 0) continue;
+
+//    const message = {
+//   notification: {
+//     title: "Prayer Reminder",
+//     body: `It's time for your ${salahName} prayer at ${mosque.mosqueName}`
+//   },
+//   data: {
+//     salahName: salahName,
+//     mosqueName: mosque.mosqueName,
+//     type: "PRAYER_ALERT"
+//   },
+//   tokens
+// };
+
+//       console.log("message", message);
+
+//       // ✅ Correct way for firebase-admin v13+
+//       const response = await admin.messaging().sendEachForMulticast(message);
+
+//       console.log(`✅ Push sent to ${mosque.mosqueName}: ${response.successCount} success, ${response.failureCount} failed`);
+//     }
+
+//   } catch (error) {
+//     console.error("❌ Error sending notifications:", error);
+//   }
+// }
+
+
+
 cron.schedule("* * * * *", async () => {
   try {
     const now = new Date();
-    const currentTime = now.toLocaleTimeString("en-IN", {
-      hour12: false,  // 24-hour format to avoid AM/PM
+    const currentTime = new Date().toLocaleTimeString("en-IN", {
+      hour12: false,
       hour: "2-digit",
       minute: "2-digit",
       timeZone: "Asia/Kolkata"
     });
 
     console.log("Checking notifications for:", currentTime);
-    
-    // const data=await axios.get("http://127.0.0.1:6000/getUser");
-    const data=await axios.get("https://prayappbackend-production.up.railway.app/getUser");
-    console.log("data",data.data);
 
-    const users = await User.find({ notificationStatus: true })
-      .select(["MosqueName", "notificationStatus", "_id","fcmToken"]);
+    await sendPrayerNotifications(currentTime);
 
-       await sendPrayerNotifications();
-
-    // Find mosques whose salah/ikaamat matches current time
     const mosques = await Mosque.find({
       $or: [
         { fajrSalah: currentTime },
@@ -96,27 +186,37 @@ cron.schedule("* * * * *", async () => {
 
     console.log("Mosques to notify:", mosques.length, mosques.map(m => m.mosqueName));
 
-    
   } catch (err) {
     console.error("Error sending notifications:", err);
   }
 });
 
-async function sendPrayerNotifications() {
-  const now = new Date();
-  const currentTime = now.toTimeString().slice(0, 5); // "HH:MM"
+
+async function sendPrayerNotifications(currentTime) {
   console.log("Checking notifications for:", currentTime);
 
   try {
     const mosques = await Mosque.find();
     const mosquesToNotify = mosques.filter(m =>
-      [m.fajrIkaamat, m.zuhrIkaamat, m.asrIkaamat, m.maghribIkaamat, m.ishaIkaamat].includes(currentTime)
+      [
+        m.fajrIkaamat?.slice(0,5),
+        m.zuhrIkaamat?.slice(0,5),
+        m.asrIkaamat?.slice(0,5),
+        m.maghribIkaamat?.slice(0,5),
+        m.ishaIkaamat?.slice(0,5)
+      ].includes(currentTime)
     );
 
     if (mosquesToNotify.length === 0) return;
 
     for (const mosque of mosquesToNotify) {
-      const salahName=mosque.fajrIkaamat===currentTime?"Fajr":mosque.zuhrIkaamat===currentTime?"Zuhr":mosque.asrIkaamat===currentTime?"Asr":mosque.maghribIkaamat===currentTime?"Maghrib":mosque.ishaIkaamat===currentTime?"Isha":null;
+      const salahName =
+        mosque.fajrIkaamat?.slice(0,5) === currentTime ? "Fajr" :
+        mosque.zuhrIkaamat?.slice(0,5) === currentTime ? "Zuhr" :
+        mosque.asrIkaamat?.slice(0,5) === currentTime ? "Asr" :
+        mosque.maghribIkaamat?.slice(0,5) === currentTime ? "Maghrib" :
+        mosque.ishaIkaamat?.slice(0,5) === currentTime ? "Isha" : null;
+
       const users = await User.find({
         MosqueName: mosque.mosqueName,
         notificationStatus: true,
@@ -126,24 +226,20 @@ async function sendPrayerNotifications() {
       const tokens = users.map(u => u.fcmToken);
       if (tokens.length === 0) continue;
 
-   const message = {
-  notification: {
-    title: "Prayer Reminder",
-    body: `It's time for your ${salahName} prayer at ${mosque.mosqueName}`
-  },
-  data: {
-    salahName: salahName,
-    mosqueName: mosque.mosqueName,
-    type: "PRAYER_ALERT"
-  },
-  tokens
-};
+      const message = {
+        notification: {
+          title: "Prayer Reminder",
+          body: `It's time for your ${salahName} prayer at ${mosque.mosqueName}`
+        },
+        data: {
+          salahName,
+          mosqueName: mosque.mosqueName,
+          type: "PRAYER_ALERT"
+        },
+        tokens
+      };
 
-      console.log("message", message);
-
-      // ✅ Correct way for firebase-admin v13+
       const response = await admin.messaging().sendEachForMulticast(message);
-
       console.log(`✅ Push sent to ${mosque.mosqueName}: ${response.successCount} success, ${response.failureCount} failed`);
     }
 
