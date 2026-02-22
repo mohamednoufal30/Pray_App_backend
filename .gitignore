@@ -1,0 +1,20 @@
+# Node.js dependencies
+node_modules/
+package-lock.json
+yarn.lock
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+
+# Environment variables
+.env
+Private/serviceAccountKey.json
+
+# Uploaded files
+uploads/
+
+# OS-specific files
+.DS_Store
+Thumbs.db
